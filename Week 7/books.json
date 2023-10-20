@@ -1,0 +1,23 @@
+[
+    {
+        "Book Name" : "A Brief History of Time",
+        "Author": "Stephen Hawking",
+        "Attribute 1": "physics",
+        "Attribute 2": "space",
+        "Attribute 3": "math"
+    },
+    {
+        "Book Name": "Weapons of Math Destruction",
+        "Author": "Cathy O'Neil",
+        "Attribute 1": "big data",
+        "Attribute 2": "math", 
+        "Attribute": "inequality"
+    },
+    {
+        "Book Name": "The Second Sex",
+        "Author": "Simone de Beauvoir",
+        "Attribute 1": "feminism",
+        "Attribute 2": "society",
+        "Attribute 3": "inequality"
+    }
+]
