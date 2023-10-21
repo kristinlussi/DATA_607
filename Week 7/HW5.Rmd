@@ -1,0 +1,136 @@
+---
+title: "DATA 607 Week 7 Assignment"
+author: "Kristin Lussi"
+date: "2023-10-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this assignment, I will load 3 different file types into R and assess the differences between each file type.
+
+## Load Packages
+
+Here, I load the necessary packages needed to load the files into R. 
+
+```{r, warning = FALSE, message = FALSE}
+library(rvest)
+library(xml2)
+library(dplyr)
+library(XML)
+library(methods)
+library(rjson)
+```
+
+## Load .html file
+
+First, I will load the .html file from GitHub.
+
+```{r, warning = FALSE, message = FALSE}
+# specify the url
+htmlurl <- "https://raw.githubusercontent.com/kristinlussi/DATA_607/main/Week%207/books.html"
+
+# read the html file using the rvest package
+book_html <- read_html(htmlurl) %>%
+  html_table()
+
+# select the first table and convert to data frame
+book_html <- book_html[[1]] %>%
+  as.data.frame()
+
+# show raw data frame
+book_html
+```
+
+As you can see, when the file is loaded into R and converted into a data frame, the column names from the .html file are not matched up with the column names for the data frame. The default column names are X1, X2, X3, X4, and X5. 
+
+We will fix this in the next section:
+
+```{r, warning = FALSE, message = FALSE}
+# rename the columns
+colnames(book_html) <- c("Book Name", "Author", "Attribute 1", "Atrribute 2", "Attribute 3")
+
+# remove the first row
+book_html <- book_html[-1,]
+
+book_html
+```
+
+
+## Load .xml fil
+
+Next, I will load the .xml file from GitHub.
+
+```{r}
+# specify the url
+xmlurl <- "https://raw.githubusercontent.com/kristinlussi/DATA_607/main/Week%207/book.xml"
+
+# read the xml content
+book_xml <- readLines(xmlurl, warn = FALSE)
+
+# join the lines into a single string
+book_xml <- paste(book_xml, collapse = "\n")
+
+# parse the XML string
+book_xml<- xmlParse(book_xml)
+
+# convert to a data frame
+book_xml <- xmlToDataFrame(book_xml)
+
+book_xml
+```
+
+As you can see, when the file is loaded into R and converted into a data frame, the column names from the .xml file are not matched up with the column names for the data frame. The default column names "td" for the first column, and blank for the remaining columns.
+
+We will fix this in the next section:
+
+```{r, warning = FALSE, message = FALSE}
+# rename the columns
+colnames(book_xml) <- c("Book Name", "Author", "Attribute 1", "Atrribute 2", "Attribute 3")
+
+# remove the first row
+book_xml <- book_xml[-1,]
+
+book_xml
+```
+
+## Load .json file
+
+Finally, we will load the .json file from GitHub.
+
+```{r}
+# specify the url
+jsonurl <- "https://raw.githubusercontent.com/kristinlussi/DATA_607/main/Week%207/books.json"
+
+# read the json file
+book_json <- fromJSON(file = jsonurl) 
+
+# show result
+book_json
+```
+
+```{r, message = FALSE, warning = FALSE}
+# extract each table and store in data frame
+book_json1 <- as.data.frame(book_json[1]) 
+book_json2 <- as.data.frame(book_json[2]) %>%
+  rename(
+    "Attribute.3" = "Attribute"
+  )
+book_json3 <- as.data.frame(book_json[3])
+
+# merge data frames into one data frame
+book_json <- bind_rows(book_json1, book_json2, book_json3)
+
+# show data frame
+book_json
+```
+
+When the .json file is read into R, there are three tables that are loaded. Each of these tables are converted into a data frame. The column names match up with the column names from the .json file, except the spaces are replaced with a ".". The three data frames are then bound into one data frame.
+
+## Conclusion
+
+In conclusion, each file type behaves differently once loaded into R. 
