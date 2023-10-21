@@ -14,10 +14,10 @@
         "Attribute": "inequality"
     },
     {
-        "Book Name": "The Second Sex",
-        "Author": "Simone de Beauvoir",
-        "Attribute 1": "feminism",
-        "Attribute 2": "society",
-        "Attribute 3": "inequality"
+        "Book Name": "Data Science for Business",
+        "Author": "Foster Provost, Tom Fawcett",
+        "Attribute 1": "data science",
+        "Attribute 2": "business",
+        "Attribute 3": "analytics"
     }
 ]
