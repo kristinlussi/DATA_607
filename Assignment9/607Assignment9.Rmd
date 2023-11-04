@@ -1,0 +1,106 @@
+---
+title: "DATA 607 Assignment 9"
+author: "Kristin Lussi"
+date: "2023-11-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+api_key <- "ViibaPGCqmcdLaPRIhGVQNpcZCc0Td3x"
+```
+
+## Introduction
+
+In this assignment, we will load the New York Times Best Sellers list using an API key. Then, we will use the data to answer the following question: *Which book category is ranked highest on the NYT Best Sellers list on average?*
+
+## Load Packages
+
+First, we load the necessary packages:
+
+```{r, warning = FALSE, message = FALSE}
+library(jsonlite)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+```
+
+## Retrieve JSON from API
+
+Next, we will retrieve the JSON data from the API url, using my API key.
+
+```{r}
+# specify url 
+api_url <- paste0("https://api.nytimes.com/svc/books/v3/lists/best-sellers/history.json?api-key=", api_key)
+
+# use the fromJSON function from the jsonlite package to parse the JSON data
+bookReviews <- fromJSON(api_url)
+```
+
+## Unnest Data
+
+Next, we will unnest the data to create a clean data frame.
+
+```{r, warning = FALSE, message = FALSE}
+bookReviews_df <- as.data.frame(bookReviews$results)
+
+bookRankings <- bookReviews_df %>%
+  unnest_wider(isbns) %>%
+  unnest_wider(ranks_history) %>%
+  unnest_wider(reviews) %>%
+  unnest(display_name) %>%
+  unnest(rank) %>%
+  # select only title, author, display name, and book ranking
+  select(title, author, rank, display_name) %>%
+  # select only one distinct title, no duplicates
+  distinct(title, .keep_all = TRUE)%>%
+  as.data.frame()
+
+bookRankings
+```
+
+## Analysis
+
+Now, we will answer the question: *Which book category is ranked highest on the NYT Best Sellers list on average?*
+
+We will first calculate the average ranking for each category:
+```{r}
+# calculate average ranking for each category
+avgRankings <- bookRankings %>%
+  group_by(display_name) %>%
+  summarise(AverageRanking = mean(rank)) %>%
+  as.data.frame()
+
+colnames(avgRankings) <- c("Category", "AverageRanking")
+
+avgRankings
+```
+
+Now, we will visualize the results using a bar plot:
+
+```{r}
+# plot average rankings for each category
+ggplot(avgRankings) +
+  geom_bar(aes(x = Category, y = AverageRanking, fill = Category), stat = "identity") +
+  coord_flip() +
+  ggtitle("Average Rankings for Each Book Category",
+          "From New York Times Best Sellers List") +
+  ylab("Average Ranking") +
+  xlab("Book Category") +
+  theme(axis.text.y = element_text(angle = 20, hjust = 1),
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position = "none")
+```
+
+## Conclusion
+
+As we know, the lower number a book is ranked, the higher it is on the New York Times Best Sellers list. So, the category with the lowest average ranking is more often ranked higher on the Best Sellers list. According to our graph, this category is "Combined Print & E-Book Nonfiction". 
+
+## Sources
+
+"New York Times: Best Sellers"
+The New York Times, https://api.nytimes.com/svc/books/v3/lists/best-sellers/history.json
