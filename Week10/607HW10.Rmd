@@ -1,0 +1,302 @@
+---
+title: "Sentiment Analysis"
+author: "Dave Greer and Kristin Lussi"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+## Introduction
+
+In this assignment, we will provide the base code from Chapter 2: Sentiment analysis with tidy data from *Text Mining with R: A Tidy Approach*. Once this code is running, we will use the *SentimentAnalysis* package to perform sentiment analysis on Nelson Mandela's 1996 State of the Nation speech. We retrieved this speech from the *State of the Nation Corpus (1990 - 2018)* Kaggle dataset.
+
+## Load Packages
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyr)
+library(tidytext)
+library(textdata)
+library(janeaustenr)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(wordcloud)
+library(reshape2)
+library(tidyverse)
+library(httr)
+library(jsonlite)
+library(SentimentAnalysis)
+```
+
+## Base Code
+```{r, warning = FALSE, message = FALSE}
+get_sentiments("afinn")
+```
+```{r, warning = FALSE, message = FALSE}
+get_sentiments("bing")
+```
+```{r, warning = FALSE, message = FALSE}
+get_sentiments("nrc")
+```
+```{r setup, include=FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+tidy_books <- austen_books() %>%
+  group_by(book) %>%
+  mutate(
+    linenumber = row_number(),
+    chapter = cumsum(str_detect(text, 
+                                regex("^chapter [\\divxlc]", 
+                                      ignore_case = TRUE)))) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+```
+```{r, warning = FALSE, message = FALSE}
+nrc_joy <- get_sentiments("nrc") %>% 
+  filter(sentiment == "joy")
+
+tidy_books %>%
+  filter(book == "Emma") %>%
+  inner_join(nrc_joy) %>%
+  count(word, sort = TRUE)
+```
+```{r, warning = FALSE, message = FALSE}
+jane_austen_sentiment <- tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(book, index = linenumber %/% 80, sentiment) %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+```
+
+```{r, warning = FALSE, message = FALSE}
+ggplot(jane_austen_sentiment, aes(index, sentiment, fill = book)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~book, ncol = 2, scales = "free_x")
+```
+
+```{r, warning = FALSE, message = FALSE}
+pride_prejudice <- tidy_books %>% 
+  filter(book == "Pride & Prejudice")
+
+pride_prejudice
+```
+
+```{r, warning = FALSE, message = FALSE}
+afinn <- pride_prejudice %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(index = linenumber %/% 80) %>% 
+  summarise(sentiment = sum(value)) %>% 
+  mutate(method = "AFINN")
+
+bing_and_nrc <- bind_rows(
+  pride_prejudice %>% 
+    inner_join(get_sentiments("bing")) %>%
+    mutate(method = "Bing et al."),
+  pride_prejudice %>% 
+    inner_join(get_sentiments("nrc") %>% 
+                 filter(sentiment %in% c("positive", 
+                                         "negative"))
+    ) %>%
+    mutate(method = "NRC")) %>%
+  count(method, index = linenumber %/% 80, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+```
+
+```{r, warning = FALSE, message = FALSE}
+bind_rows(afinn, 
+          bing_and_nrc) %>%
+  ggplot(aes(index, sentiment, fill = method)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~method, ncol = 1, scales = "free_y")
+```
+
+```{r, warning = FALSE, message = FALSE}
+get_sentiments("nrc") %>% 
+  filter(sentiment %in% c("positive", "negative")) %>% 
+  count(sentiment)
+```
+
+```{r, warning = FALSE, message = FALSE}
+get_sentiments("bing") %>% 
+  count(sentiment)
+```
+
+```{r, warning = FALSE, message = FALSE}
+bing_word_counts <- tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+```
+
+```{r, warning = FALSE, message = FALSE}
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(x = "Contribution to sentiment",
+       y = NULL)
+```
+
+```{r, warning = FALSE, message = FALSE}
+custom_stop_words <- bind_rows(tibble(word = c("miss"),  
+                                      lexicon = c("custom")), 
+                               stop_words)
+
+custom_stop_words
+```
+
+```{r, warning = FALSE, message = FALSE}
+tidy_books %>%
+  anti_join(stop_words) %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+```
+
+```{r, warning = FALSE, message = FALSE}
+tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("gray20", "gray80"),
+                   max.words = 100)
+```
+
+```{r, warning = FALSE, message = FALSE}
+p_and_p_sentences <- tibble(text = prideprejudice) %>% 
+  unnest_tokens(sentence, text, token = "sentences")
+```
+
+```{r, warning = FALSE, message = FALSE}
+p_and_p_sentences$sentence[2]
+```
+
+```{r, warning = FALSE, message = FALSE}
+austen_chapters <- austen_books() %>%
+  group_by(book) %>%
+  unnest_tokens(chapter, text, token = "regex", 
+                pattern = "Chapter|CHAPTER [\\dIVXLC]") %>%
+  ungroup()
+
+austen_chapters %>% 
+  group_by(book) %>% 
+  summarise(chapters = n())
+```
+
+```{r, warning = FALSE, message = FALSE}
+bingnegative <- get_sentiments("bing") %>% 
+  filter(sentiment == "negative")
+```
+
+```{r, warning = FALSE, message = FALSE}
+wordcounts <- tidy_books %>%
+  group_by(book, chapter) %>%
+  summarize(words = n())
+```
+
+```{r, warning = FALSE, message = FALSE}
+tidy_books %>%
+  semi_join(bingnegative) %>%
+  group_by(book, chapter) %>%
+  summarize(negativewords = n()) %>%
+  left_join(wordcounts, by = c("book", "chapter")) %>%
+  mutate(ratio = negativewords/words) %>%
+  filter(chapter != 0) %>%
+  slice_max(ratio, n = 1) %>% 
+  ungroup()
+```
+## Working with the *SentimentAnalysis* Package
+
+We will extend the base code from the previous section using the *SentimentAnalysis* package. 
+
+```{r, warning = FALSE, message = FALSE}
+url<-"https://raw.githubusercontent.com/greerda/Data607/main/1996_Mandela.txt"
+
+file_content <- readLines(url)
+ 
+tokens <- tibble(text = file_content)
+ 
+cleaned_tibble <- tokens %>% filter(!is.na(text) & text != "") 
+```
+
+```{r, warning = FALSE, message = FALSE, results = 'hide'}
+wordvector<- cleaned_tibble$text
+# extract each word from each sentence
+words_list <- unlist(strsplit(wordvector, " "))
+# Remove special characters
+words_list <- gsub("[[:punct:]]", "", words_list)
+
+sentiment <- analyzeSentiment(words_list)
+sentiment$SentimentQDAP
+convertToBinaryResponse(sentiment)$SentimentGI
+direction_sentiment <- convertToDirection(sentiment$SentimentQDAP)
+sentiment_mapping <- c("negative" = -1, "neutral" = 0, "positive" = 1)
+response <- sapply(direction_sentiment, function(category) sentiment_mapping[category])
+compareToResponse(sentiment, response) 
+
+word_labels <- sapply(direction_sentiment, function(category) {
+  sentiment_mapping[category]
+})
+
+word_data <- data.frame(Word = words_list, Sentiment = word_labels) %>%
+  mutate(Sentiment = ifelse(Sentiment == 0, "negative", "positive")) %>%
+  na.omit(Sentiment)
+```
+
+## Including Plots
+
+### Comparison Cloud
+
+```{r comparison-cloud, message = FALSE, warning = FALSE}
+word_data %>%
+  count(Word, Sentiment, sort = TRUE) %>%
+  acast(Word ~ Sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("darkred", "darkgreen"),
+                   max.words = 100)
+```
+
+### Sentiment Categories
+
+```{r category-counts, message = FALSE, warning = FALSE}
+sentiment_categories <- data.frame(category = direction_sentiment) %>%
+  na.omit()
+
+ggplot(data = sentiment_categories) +
+  geom_bar(aes(x = category, fill = category)) +
+  ggtitle("Sentiment Category Counts") +
+  xlab("Category") +
+  ylab("Count") +
+  theme(
+    plot.title = element_text(hjust=0.5),
+    legend.position = "none"
+  ) +
+  coord_flip()
+```
+
+### Common Words
+
+```{r common-words, warning = FALSE, message = FALSE}
+word_data %>%
+  group_by(Word, Sentiment) %>%
+  summarise(Count = n()) %>%
+  arrange(desc(Count)) %>%
+  filter(Count >= 10) %>%
+  select(Word, Count) %>%
+  as.data.frame()
+```
+
+## Sources
+
+[Kaggle Dataset](https://www.kaggle.com/datasets/allank/state-of-the-nation-1990-2017)
+
+[SentimentAnalysis Package](https://www.rdocumentation.org/packages/SentimentAnalysis/versions/1.3-5#:~:text=SentimentAnalysis%20performs%20a%20sentiment%20analysis,can%20also%20create%20customized%20dictionaries) 
+
+[Base Code](https://www.tidytextmining.com/sentiment.html)
