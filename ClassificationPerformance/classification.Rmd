@@ -1,0 +1,126 @@
+---
+title: 'DATA 607 Extra Credit: Classification Performance Metrics'
+author: "Kristin Lussi"
+date: "2023-11-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Packages
+```{r, warning = FALSE, message = FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+## Load Data
+```{r, warning = FALSE, message = FALSE}
+url <- "https://raw.githubusercontent.com/acatlin/data/master/classification_model_performance.csv"
+
+performance <- read_csv(url, show_col_types = FALSE)
+
+head(performance)
+```
+
+## Calculate and state the null error rate for the provided classification_model_performance.csv dataset. Create a plot showing the data distribution of the actual explanatory variable. 
+
+```{r, warning = FALSE, message = FALSE}
+# assign each case to TP, TN, FP, or FN
+performance <- performance %>%
+  mutate(result = ifelse(class == 0 & scored.class == 0, "TN", 
+                         ifelse(class == 1& scored.class == 1, "TP",
+                                ifelse(class == 1 & scored.class == 0, "FN", 
+                                       ifelse(class == 0 & scored.class == 1, "FP", "other")))))
+
+# calculate null error rate
+null.error.rate = (sum(performance$result == "FP") + sum(performance$result == "TN")) / nrow(performance)
+
+# Print the null error rate
+cat("The null error rate is:", null.error.rate, "\n")
+```
+
+```{r, warning = FALSE, message = FALSE}
+performance_percents <- performance %>%
+  mutate(
+    positive_actual = sum(class == 1),
+    negative_actual = sum(class == 0),
+    positive_percent = round(positive_actual / nrow(performance) * 100, 2),
+    negative_percent = round(negative_actual / nrow(performance) * 100, 2))
+
+performance %>%
+  ggplot(aes(x = factor(class))) +
+  geom_bar(fill = c("0" = "lightblue", "1" = "lightpink")) +
+  geom_text(
+    aes(label = paste0(ifelse(factor(class) == 0, performance_percents$negative_percent, performance_percents$positive_percent), "%")),
+    y = 0, 
+    position = position_identity(),
+    vjust = -0.5
+  ) +
+  xlab("Class") +
+  ylab("Count") +
+  ggtitle("Target",
+          "Distribution of Actual Explanatory Variable") +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+```
+
+## Analyze the data to determine the true positive,false positive,true negative, and false negative values for the dataset, using scored.probability thresholds of 0.2, 0.5, and 0.8. Display your results in a table, with the probability thresholds in columns, and the TP, FP, TN, and FN values in rows.
+
+```{r, warning = FALSE, message = FALSE}
+confusion_matrix <- performance %>%
+  mutate(threshold_02 = ifelse(scored.probability >= 0.2, 1, 0),
+         threshold_05 = ifelse(scored.probability >= 0.5, 1, 0),
+         threshold_08 = ifelse(scored.probability >= 0.8, 1, 0)) %>%
+  gather(threshold, scored.class, -class, -scored.probability, -result, -scored.class) %>%
+  group_by(threshold) %>%
+  summarise(
+    TP = sum(class == 1 & scored.class == 1),
+    FP = sum(class == 0 & scored.class == 1),
+    TN = sum(class == 0 & scored.class == 0),
+    FN = sum(class == 1 & scored.class == 0)
+  ) %>%
+  pivot_longer(cols = c(TP, FP, TN, FN), names_to = "Values", values_to = "threshold_value") %>%
+  pivot_wider(names_from = threshold, values_from = threshold_value) %>%
+  as.data.frame()
+
+colnames(confusion_matrix) <- c("Values", "0.2 Threshold", "0.5 Threshold", "0.8 Threshold")
+
+confusion_matrix
+```
+
+## Create a table showing — for each of the three thresholds — the accuracy, precision, recall, and F1 scores.
+
+```{r, warning = FALSE, message = FALSE}
+# transpose matrix
+rotated_confusion_matrix <- as.data.frame(t(confusion_matrix[,-1]))
+colnames(rotated_confusion_matrix) <- confusion_matrix$Values
+
+rotated_confusion_matrix %>%
+  mutate(
+    accuracy = (TP + TN) / (TP+FP+TN+FN),
+    precision = TP / (TP + FP),
+    recall = TP / (TP + FN),
+    f.score = (2 * recall * precision) / (recall + precision)
+  ) %>%
+  select(-TP, -FP, -TN, -FN)
+```
+
+## Provide at least one example use case where (a) an 0.2 scored probability threshold would be preferable, and (b) an 0.8 scored probability threshold would be preferable.
+
+### 0.2 Scored Probability Threshold
+
+**Scenario:** Early screening for diseases.
+
+In a model where there is screening for a rare disease, it may be preferable to use a 0.2 scored probability threshold since this will increase the sensitivity of the model and capture more potential cases, minimizing the chance of missing true positives. The consequences of a false positive are less severe than those of a missing a true positive.
+
+### 0.8 Scored Probability Threshold
+
+**Scenario:** Fraud Detection in Financial Transactions
+
+In a model that determines fraud from financial transactions (i.e. credit card transactions), it may be preferable to use a 0.8 scored probability threshold since the consequences of false positives are high. If a transaction is falsely flagged as fraud, it could inconvenience a user by blocking their credit card. Using a higher probability threshold means that the model would only flag transactions where there is high confidence that the transaction is fraudulent. 
