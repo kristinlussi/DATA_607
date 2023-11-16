@@ -1,0 +1,117 @@
+---
+title: 'Recommender Systems: Hinge'
+author: "Kristin Lussi"
+date: "2023-11-19"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In 1995, Match.com became the first online dating site. Online dating has evolved drastically since then. The first dating application was Grindr, which was catered towards the gay community and was launched in 2009. In 2012, Tinder was launched. Tinder had the largest impact on the online dating culture (and the dating culture in general), inspiring many other apps like Bumble and Hinge. 
+
+In this discussion, we will be focusing on the recommendation algorithm of Hinge. Hinge is an online dating application that launched in 2013. Match Group (the company that also owns Match.com, Tinder, and several other dating apps) fully acquired Hinge in 2019. As of 2023, Hinge has 23 million users. The company likes to boast that the app is "designed to be deleted".
+
+## Scenario Analysis
+
+### Target Audience
+The target audience for Hinge is single people of all ages, genders, and sexual orientation who are looking for some sort of relationship. 
+
+### Key Goal
+The key goal is to match users with a compatible significant other. 
+
+### How can Hinge help users accomplish their goals?
+Hinge can help users find a relationship by matching them with the most compatible users. 
+
+## Features
+
+Hinge has several **unique features**:
+
+- Forces users to answer three prompts of their choice. These prompts are short questions that make a user's profile more personable and show more of the user's personality. 
+- Provides users with a list of standouts. These "standouts" are the user's most compatible users.
+- Allows users to like a specific part of a user's profile. For example, a user can like a certain photo or prompt on another user's profile.
+- Disclosing height is a requirement for users.
+- A user can change your location at any time.
+- Non-paying members can see who liked their profile.
+- A user can send a message at the same time they send a like.
+- A user can only like 8 profiles a day without a paid subscription.
+- Once a phone number is included in a message exchange with a match, Hinge will ask the user a few days later whether or not they met the match in person. If they had, Hinge asks how the user thought the quality of the match was. 
+
+## Requested Information from User
+
+When you sign up for Hinge, a user will need to provide the following **required information**:
+
+- Name
+- Email
+- Date of birth
+- Location
+- Height
+- Gender (although this can be hidden)
+
+There are some **optional details** a user can provide as well:
+
+- Religion
+- Political beliefs
+- Relationship type (whether someone is looking for monogamy, polygamy, etc.)
+- Dating intentions (whether someone is looking for something long-term, short-term, life partner, or figuring out dating goals)
+- Family plans
+- Ethnicity
+- Several more details are available as a paying user
+
+## Reverse Engineering
+
+After some research, I've determined that Hinge uses **collaborative filtering**, which is the same recommendation technique used by Netflix, YouTube, and several other platforms. **Collaborative filtering** is a recommender system technique that makes recommendations to a user based on similarity measures between users. For example, if you and another user both liked the movie *Barbie* and this other user also liked the movie *The Little Mermaid*, then the recommender system will recommend for you to watch *The Little Mermaid*. Collaborative filtering's main assumption is that if two users had similar preferences in the past, they will continue to have similar preferences in the future. 
+
+## Problems
+
+One of the main issues with the use of collaborative filtering for Hinge is that users who get liked the most get recommended the most. If the majority of users are liking you, the more you will be recommended to other users. If the majority of users are not liking you, the less you will be recommended and the less matches you will get. This also causes an issue with minority users, who are victims of unconsious racism on dating apps. Dating platforms have been critcized for this in the past. 
+
+## Recommendations for Improvements
+
+One improvement to the recommendation system for Hinge is to incorporate the use of surveys. The original online dating platforms used *survey answers* to recommend dates. It seems like Hinge's algorithm mainly relies on the collaborative filtering method, and not as much on the details a user can provide on their profile. Although some of these details a user can set to "dealbreaker", so that only people with these details will show up in their recommendations (i.e. you can narrow down your results to include only men who are between 25-30 and are within a 2 mile radius). Making survey answers a requirement for all users can help people find more compatible users. Most of the details a user can provide are in regards to their own lifestyle choices, not what kind of lifestyle a potential partner lives. For example, these surveys can ask questions such as:
+
+- Does your potential partner have a college degree?
+- Does your potential partner stay active?
+- Does your potential partner want kids?
+- etc...
+
+Another way to improve the recommendation system is to ask users questions after they like or pass on a user. For example, when a user dislikes someone, Hinge could ask the following question:
+
+- What are the reasons for passing on this user?
+  * No initial attraction
+  * Lifestyle differences
+  * User is not a local
+  * etc...
+
+This would provide more feedback to Hinge's algorithm. Let's say that the user this person did not like was an African American male who is Democratic and Christian. Instead of Hinge's algorithm assuming that this person does not like African American men who are Democratic and Christian, it will know that the reason this person passed was due to lifestyle differences or that the user is not local.
+
+## Sources
+
+[Hinge Guide]("https://www.vidaselect.com/hinge-guide/")
+
+[How does Hinge work?]("https://www.businessinsider.com/guides/tech/how-does-hinge-work#:~:text=And%20if%20two%20users%20like,and%20how%20to%20get%20started.")
+
+[Dating Algorithms - Filter Bubble]("https://www.wired.com/story/dating-algorithms-filter-bubble/")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
